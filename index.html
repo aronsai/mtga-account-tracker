@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111916">
+  <meta name="description" content="A quiet companion for your MTG Arena accounts. Track balances, daily wins and quests in one compact window.">
+  <title>Arena account tracker</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span><span>Arena <strong>account tracker</strong></span></div>
+      <div class="toolbar"><button id="add-account" class="primary">+ Add account</button><div class="draft-selector"><label for="draft-type">Draft</label><select id="draft-type"><option value="quick">Quick</option><option value="premier">Premier</option></select></div></div>
+      <p id="reset-clock" title="Daily reset at 09:00 UTC"></p>
+    </header>
+    <p id="storage-error" class="error" role="alert" hidden></p>
+    <section aria-label="Your accounts" id="accounts"></section>
+    <section id="empty" class="empty" hidden><span aria-hidden="true">✧</span><h1>A little less to keep in mind.</h1><p>Add your first account to keep daily wins<br>and quests close at hand.</p><button id="empty-add" class="primary">+ Add account</button></section>
+    <footer><span class="status-dot" aria-hidden="true"></span><span id="save-status">Saved in this browser</span></footer>
+  </main>
+  <dialog id="account-dialog" aria-labelledby="dialog-title">
+    <form id="account-form">
+      <div class="dialog-heading"><h2 id="dialog-title">Add account</h2><button type="button" class="icon" id="close-dialog" aria-label="Close">×</button></div>
+      <label>Account name<input id="account-name" name="name" maxlength="80" required autocomplete="off" placeholder="e.g. Main account"></label>
+      <div class="form-grid"><label>Gold<input id="account-gold" type="number" min="0" max="9007199254740991" step="1" value="0" required></label><label>Gems<input id="account-gems" type="number" min="0" max="9007199254740991" step="1" value="0" required></label></div>
+      <div class="form-grid"><label id="wins-label">Daily wins<input id="account-wins" type="number" min="0" max="15" step="1" value="0" required></label><label>Remaining quests<input id="account-quests" type="number" min="0" max="3" step="1" value="0" required></label></div>
+      <p id="form-error" class="error" role="alert" hidden></p>
+      <button class="primary submit" type="submit" id="save-account">Add account</button>
+    </form>
+  </dialog>
+  <dialog id="remove-dialog" aria-labelledby="remove-title"><form method="dialog"><h2 id="remove-title">Remove account?</h2><p id="remove-description"></p><div class="dialog-actions"><button value="cancel">Keep account</button><button value="remove" class="danger">Remove</button></div></form></dialog>
+  <p id="announcement" class="sr-only" role="status" aria-live="polite"></p>
+</body>
+</html>
