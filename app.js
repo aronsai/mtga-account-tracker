@@ -1,7 +1,7 @@
-import { applyReset, initialState, readStorage, writeStorage, resetTimestamp, updateAccount, STORAGE_KEY, DRAFT_COSTS, addWin, completeQuest, spendDraft } from './tracker.js';
+import { applyReset, initialState, readStorage, writeStorage, resetTimestamp, updateAccount, STORAGE_KEY, DRAFT_COSTS, addWin, completeQuest, spendDraft, addGems, DRAFT_GEM_REWARDS } from './tracker.js';
 const $ = s => document.querySelector(s);
 const edits = new Map();
-let state, storageBlocked = false, removingId = null, removeFocus = null;
+let state, storageBlocked = false, removingId = null, removeFocus = null, rewardId = null;
 const node = (tag, cls, text) => { const el = document.createElement(tag); if (cls) el.className = cls; if (text !== undefined) el.textContent = text; return el; };
 function button(text, cls, action, label = text) { const el = node('button', cls, text); el.type = 'button'; el.setAttribute('aria-label', label); el.onclick = action; return el; }
 function announce(text) { $('#announcement').textContent = text; }
@@ -96,7 +96,10 @@ function makeCard(a) {
   const edit = button(editing ? 'Done' : 'Edit', 'edit-button', () => toggleEdit(a.id), `${editing ? 'Done editing' : 'Edit'} ${a.name}`); edit.dataset.action = 'edit';
   head.append(symbol, editing ? inlineInput(a, 'name') : node('h2', 'account-name', a.name), edit);
   const balances = node('div', 'balances');
-  for (const currency of ['gold', 'gems']) { const balance = node('div', `balance ${currency}`); balance.append(editing ? inlineInput(a, currency) : node('strong', '', a[currency].toLocaleString()), node('span', 'currency-suffix', currency)); balances.append(balance); }
+  for (const currency of ['gold', 'gems']) { const balance = node('div', `balance ${currency}`); balance.append(editing ? inlineInput(a, currency) : node('strong', '', a[currency].toLocaleString()), node('span', 'currency-suffix', currency)); if (currency === 'gems' && !editing) {
+    const add = button('+ Gems', 'gem-button', () => openGemRewards(a.id), `Add gems for ${a.name}`);
+    add.dataset.action = 'add-gems'; balance.append(add);
+  } balances.append(balance); }
   card.append(head, balances, counter(a, 'wins', 15, 'Wins'), counter(a, 'quests', 3, 'Quests'));
   if (editing) {
     const error = node('p', 'error inline-error'); error.id = `error-${a.id}`; error.setAttribute('role','alert'); error.hidden = true; card.append(error);
@@ -126,6 +129,34 @@ function render() {
   for (const [id, el] of existing) { edits.delete(id); el.remove(); }
   $('#empty').hidden = state.accounts.length > 0;
 }
+function openGemRewards(id) {
+  reconcile();
+  const a = account(id); if (!a) return;
+  rewardId = id;
+  $('#gem-form').reset(); $('#gem-error').hidden = true;
+  $('#gem-title').textContent = `Add gems · ${a.name}`;
+  $('#gem-format').textContent = `${state.draftType === 'quick' ? 'Quick' : 'Premier'} draft rewards`;
+  const presets = $('#gem-presets'); presets.replaceChildren();
+  DRAFT_GEM_REWARDS[state.draftType].forEach((amount, wins) => {
+    const preset = button('', 'gem-preset', () => creditGems(amount), `Add ${amount.toLocaleString()} gems for ${wins} ${wins === 1 ? 'win' : 'wins'}`);
+    preset.append(node('strong', '', `+${amount.toLocaleString()} gems`), node('span', '', `${wins} ${wins === 1 ? 'win' : 'wins'}`));
+    presets.append(preset);
+  });
+  $('#gem-dialog').showModal(); presets.querySelector('button').focus();
+}
+function creditGems(amount) {
+  if (rewardId === null || !$('#gem-dialog').open) return;
+  reconcile();
+  try {
+    const a = account(rewardId);
+    if (!addGems(state, rewardId, amount)) throw new Error('This account is no longer available.');
+    save(); $('#gem-dialog').close(); render();
+    announce(`${a.name}: added ${amount.toLocaleString()} gems.`);
+  } catch (error) { $('#gem-error').textContent = error.message; $('#gem-error').hidden = false; }
+}
+$('#gem-form').onsubmit = event => { event.preventDefault(); creditGems(Number($('#gem-amount').value)); };
+$('#close-gems').onclick = () => $('#gem-dialog').close();
+$('#gem-dialog').onclose = () => { const id = rewardId; rewardId = null; focusCard(id, 'add-gems'); };
 function requestRemoval(id) { removingId = id; removeFocus = document.activeElement; $('#remove-description').textContent = `Remove “${account(id).name}” and its progress from this browser?`; $('#remove-dialog').returnValue = ''; $('#remove-dialog').showModal(); }
 $('#remove-dialog').onclose = () => { if ($('#remove-dialog').returnValue === 'remove') { state.accounts = state.accounts.filter(a => a.id !== removingId); edits.delete(removingId); save(); render(); $('#add-account').focus(); announce('Account removed.'); } else removeFocus?.focus(); removingId = null; };
 function openAccount() { reconcile(); $('#account-form').reset(); $('#form-error').hidden = true; $('#account-dialog').showModal(); $('#account-name').focus(); }

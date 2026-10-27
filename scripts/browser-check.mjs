@@ -21,6 +21,44 @@ try {
  await add('Synthetic Main',5000,3);await add('Synthetic Alt',0,0);
  const first=page.locator('.card').nth(0), second=page.locator('.card').nth(1);
  assert.equal(await first.locator('.draft-row').count(),1);assert.equal(await second.locator('.draft-row').count(),0);
+ // Reward presets work without an affordable draft or a recorded entry.
+ const gemsButton = second.getByRole('button', {name:'Add gems for Synthetic Alt',exact:true});
+ await gemsButton.click();
+ assert.deepEqual(await page.locator('.gem-preset strong').allTextContents(), ['+50 gems','+100 gems','+200 gems','+300 gems','+450 gems','+650 gems','+850 gems','+950 gems']);
+ await page.locator('.gem-preset').nth(7).click();
+ await page.waitForFunction(()=>!document.querySelector('#gem-dialog').open);
+ assert.equal((await stored()).accounts[1].gems,950);
+ await page.waitForFunction(()=>document.activeElement?.dataset.action==='add-gems');
+ assert.equal(await gemsButton.evaluate(el=>el===document.activeElement),true);
+ assert.equal(await second.locator('.draft-row').count(),1);
+ assert.equal((await stored()).accounts[0].gems,0);
+ await gemsButton.click(); await page.keyboard.press('Escape');
+ await gemsButton.click(); await page.locator('#close-gems').click();
+ assert.equal((await stored()).accounts[1].gems,950);
+ await page.locator('#draft-type').selectOption('premier');
+ await gemsButton.click();
+ assert.deepEqual(await page.locator('.gem-preset strong').allTextContents(), ['+50 gems','+100 gems','+250 gems','+1,000 gems','+1,400 gems','+1,600 gems','+1,800 gems','+2,200 gems']);
+ await page.locator('.gem-preset').nth(2).focus(); await page.keyboard.press('Enter');
+ assert.equal((await stored()).accounts[1].gems,1200);
+ await gemsButton.click(); await page.locator('#gem-amount').fill('300');
+ await page.getByRole('button',{name:'Add gems',exact:true}).click();
+ assert.equal((await stored()).accounts[1].gems,1500);
+ assert.equal(await second.locator('.draft-row').count(),1);
+ await gemsButton.click(); await page.locator('#gem-amount').fill('0');
+ await page.getByRole('button',{name:'Add gems',exact:true}).click();
+ assert.equal(await page.locator('#gem-dialog').evaluate(el=>el.open),true);
+ assert.equal((await stored()).accounts[1].gems,1500);
+ await page.locator('#gem-amount').fill('9007199254740991');
+ await page.getByRole('button',{name:'Add gems',exact:true}).click();
+ assert.equal(await page.locator('#gem-error').isVisible(),true);
+ for (const width of [320,400]) {
+   await page.setViewportSize({width,height:900});
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+   assert.equal(await page.locator('#gem-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth),true);
+ }
+ await page.keyboard.press('Escape'); await page.reload();
+ assert.equal((await stored()).accounts[1].gems,1500);
+ await page.locator('#draft-type').selectOption('quick');
  await first.locator('.edit-button').focus();await page.keyboard.press('Enter');
  const gold=first.locator('[data-field="gold"]');await gold.fill('6000');await page.keyboard.press('Enter');assert.equal((await stored()).accounts[0].gold,6000);
  await gold.blur();assert.equal((await stored()).accounts[0].gold,6000);

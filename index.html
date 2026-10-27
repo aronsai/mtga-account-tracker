@@ -34,6 +34,16 @@
       <button class="primary submit" type="submit" id="save-account">Add account</button>
     </form>
   </dialog>
+  <dialog id="gem-dialog" aria-labelledby="gem-title" aria-describedby="gem-format">
+    <form id="gem-form">
+      <div class="dialog-heading"><h2 id="gem-title">Add gems</h2><button type="button" class="icon" id="close-gems" aria-label="Cancel adding gems">×</button></div>
+      <p id="gem-format"></p>
+      <div id="gem-presets" class="gem-presets"></div>
+      <label>Custom gem amount<input id="gem-amount" type="number" min="1" max="9007199254740991" step="1" required aria-describedby="gem-error"></label>
+      <p id="gem-error" class="error" role="alert" hidden></p>
+      <button class="primary submit" type="submit">Add gems</button>
+    </form>
+  </dialog>
   <dialog id="remove-dialog" aria-labelledby="remove-title"><form method="dialog"><h2 id="remove-title">Remove account?</h2><p id="remove-description"></p><div class="dialog-actions"><button value="cancel">Keep account</button><button value="remove" class="danger">Remove</button></div></form></dialog>
   <p id="announcement" class="sr-only" role="status" aria-live="polite"></p>
 </body>

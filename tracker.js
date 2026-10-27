@@ -1,6 +1,7 @@
 export const STORAGE_KEY = 'mtga-account-tracker.v1';
 export const RESET_HOUR_UTC = 9;
 export const DRAFT_COSTS = { quick: { gold: 5000, gems: 750 }, premier: { gold: 10000, gems: 1500 } };
+export const DRAFT_GEM_REWARDS = { quick: [50, 100, 200, 300, 450, 650, 850, 950], premier: [50, 100, 250, 1000, 1400, 1600, 1800, 2200] };
 export const WIN_GOLD = [250, 100, 100, 100, 0, 50, 0, 50, 0, 50, 0, 25, 0, 25, 0];
 const DAY = 86400000;
 export function resetTimestamp(now = Date.now()) {
@@ -59,6 +60,13 @@ export function addWin(state, id) {
   const a = state.accounts.find(a => a.id === id);
   if (!a || a.wins >= 15) return false;
   updateAccount(state, id, { wins: a.wins + 1, gold: a.gold + WIN_GOLD[a.wins] });
+  return true;
+}
+export function addGems(state, id, amount) {
+  if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error('Enter a positive whole number of gems.');
+  const a = state.accounts.find(a => a.id === id);
+  if (!a) return false;
+  updateAccount(state, id, { gems: a.gems + amount });
   return true;
 }
 export function completeQuest(state, id, reward) {

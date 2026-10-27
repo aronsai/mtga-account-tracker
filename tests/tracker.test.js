@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyReset, initialState, parseState, readStorage, writeStorage, resetTimestamp, updateAccount, STORAGE_KEY, addWin, completeQuest, spendDraft, DRAFT_COSTS, WIN_GOLD } from '../tracker.js';
+import { applyReset, initialState, parseState, readStorage, writeStorage, resetTimestamp, updateAccount, STORAGE_KEY, addWin, completeQuest, spendDraft, DRAFT_COSTS, WIN_GOLD, addGems, DRAFT_GEM_REWARDS } from '../tracker.js';
 const time = value => Date.parse(value);
 const start = time('2026-10-24T12:00:00Z');
 function fixture() {
@@ -113,4 +113,25 @@ test('resets preserve balances and selected draft; v2 round trip', () => {
   const s=fixture();s.draftType='premier';applyReset(s,time('2026-11-01T10:00:00Z'));
   assert.equal(s.accounts[0].gold,1000);assert.equal(s.accounts[0].gems,200);assert.equal(s.draftType,'premier');
   assert.deepEqual(parseState(JSON.stringify(s)),s);
+});
+
+test('gem credits validate atomically, isolate accounts and persist', () => {
+  const s = fixture(), before = structuredClone(s);
+  for (const amount of [0, -1, 1.5, NaN, Infinity, '100', Number.MAX_SAFE_INTEGER + 1]) {
+    assert.throws(() => addGems(s, 'alpha', amount)); assert.deepEqual(s, before);
+  }
+  assert.equal(addGems(s, 'missing', 100), false); assert.deepEqual(s, before);
+  for (const rewards of Object.values(DRAFT_GEM_REWARDS)) for (const amount of rewards) {
+    const previous = s.accounts[0].gems;
+    assert.equal(addGems(s, 'alpha', amount), true); assert.equal(s.accounts[0].gems, previous + amount);
+  }
+  assert.deepEqual(s.accounts[1], before.accounts[1]);
+  assert.equal(s.accounts[0].gold, before.accounts[0].gold);
+  assert.equal(s.accounts[0].wins, before.accounts[0].wins);
+  assert.equal(s.accounts[0].quests, before.accounts[0].quests);
+  let raw; writeStorage({setItem: (key, value) => {raw = value;}}, s);
+  assert.deepEqual(readStorage({getItem: () => raw}), s);
+  updateAccount(s, 'alpha', {gems: Number.MAX_SAFE_INTEGER});
+  const full = structuredClone(s);
+  assert.throws(() => addGems(s, 'alpha', 1)); assert.deepEqual(s, full);
 });
